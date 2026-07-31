@@ -1,0 +1,18 @@
+{
+  "C:\\Users\\indre\\Downloads\\HIDS_PROJECT_realtime\\HIDS_PROJECT\\test_watched_files\\secrets.txt": {
+    "hash": "f80f05f6d9658ccb0db8d6d56ea5425bd62b3db9b21a5c91db6fd8c1c261eff6",
+    "saved_at": "2026-07-31T20:44:17.522831"
+  },
+  "C:\\Users\\indre\\Downloads\\HIDS_PROJECT_realtime\\HIDS_PROJECT\\test_watched_files\\readme.txt": {
+    "hash": "23649cb15ae33132d2f04574374337fdfcd7a29ed2b0afeeb0c13c36770b6795",
+    "saved_at": "2026-07-31T20:44:17.810443"
+  },
+  "C:/Windows/System32/drivers/etc/hosts": {
+    "hash": "2d6bdfb341be3a6234b24742377f93aa7c7cfb0d9fd64efa9282c87852e57085",
+    "saved_at": "2026-07-31T20:44:18.114111"
+  },
+  "C:\\Users\\indre\\Downloads\\HIDS_PROJECT_realtime\\HIDS_PROJECT\\test_watched_files\\config.txt": {
+    "hash": "93483986dd01f56a8033426d8581cf41783539b63098023f037a5d3d334864b6",
+    "saved_at": "2026-07-31T20:44:18.440725"
+  }
+}

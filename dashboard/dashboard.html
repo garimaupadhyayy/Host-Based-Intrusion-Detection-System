@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HIDS — Security Operations Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #060911;
+  --bg-grad-1: #0a1120;
+  --bg-grad-2: #060911;
+  --panel:     #0b1220;
+  --panel-2:   #0e1626;
+  --border:    rgba(120,155,255,0.13);
+  --border-2:  rgba(120,155,255,0.24);
+  --text:      #eaf0fb;
+  --muted:     #7c8bad;
+  --muted-2:   #4d5c80;
+
+  --blue:      #3b82f6;
+  --blue-2:    #60a5fa;
+  --cyan:      #22d3ee;
+  --purple:    #a78bfa;
+  --amber:     #fbbf24;
+  --red:       #f5455c;
+  --green:     #34d399;
+
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body:    'Inter', -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Courier New', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 900px 500px at 8% 0%, rgba(59,130,246,0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 15%, rgba(167,139,250,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse 800px 600px at 50% 100%, rgba(34,211,238,0.06) 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 40%);
+  pointer-events: none;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(120,155,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120,155,255,0.025) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+}
+
+.wrap { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; width: 100%; }
+
+/* ══════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════ */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px;
+  height: 72px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(6,9,17,0.75);
+  backdrop-filter: blur(14px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 14px; }
+.logo-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
+  box-shadow: 0 0 18px rgba(59,130,246,0.35);
+  flex-shrink: 0;
+}
+.logo-icon svg { width: 20px; height: 20px; color: #fff; }
+.logo-text { font-family: var(--font-display); font-size: 17px; font-weight: 700; letter-spacing: -0.2px; }
+.logo-text span { background: linear-gradient(90deg, var(--blue-2), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.logo-sub { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); letter-spacing: 1.6px; text-transform: uppercase; margin-top: 1px; }
+
+.header-center {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--muted);
+}
+.header-center .sep { opacity: 0.3; }
+
+.header-right { display: flex; align-items: center; gap: 14px; }
+
+.icon-btn {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--muted);
+  transition: all 0.15s;
+}
+.icon-btn:hover { border-color: var(--border-2); color: var(--text); background: rgba(255,255,255,0.04); }
+.icon-btn.active { color: var(--cyan); border-color: rgba(34,211,238,0.4); background: rgba(34,211,238,0.08); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.live-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 20px;
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--green); letter-spacing: 0.5px;
+  background: rgba(52,211,153,0.07);
+}
+.live-badge.paused { color: var(--amber); border-color: rgba(251,191,36,0.35); background: rgba(251,191,36,0.08); cursor: pointer; }
+.live-badge:not(.paused) { cursor: pointer; }
+.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: livepulse 2s ease-in-out infinite; }
+.live-badge.paused .live-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: none; }
+@keyframes livepulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+.uptime-display {
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+  padding: 6px 13px; border: 1px solid var(--border); border-radius: 8px;
+}
+.uptime-display span { color: var(--text); }
+
+/* ══════════════════════════════════════════
+   STATUS RIBBON
+══════════════════════════════════════════ */
+.ribbon {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 40px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono); font-size: 12px;
+  transition: background 0.4s;
+}
+.ribbon-left { display: flex; align-items: center; gap: 12px; }
+.ribbon-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.ribbon-status-label { letter-spacing: 1.4px; text-transform: uppercase; font-weight: 600; }
+.ribbon-sub { color: var(--muted); }
+.ribbon.state-secure { background: rgba(52,211,153,0.05); }
+.ribbon.state-secure .ribbon-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.ribbon.state-secure .ribbon-status-label { color: var(--green); }
+.ribbon.state-elevated { background: rgba(251,191,36,0.06); }
+.ribbon.state-elevated .ribbon-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.ribbon.state-elevated .ribbon-status-label { color: var(--amber); }
+.ribbon.state-critical { background: rgba(245,69,92,0.08); }
+.ribbon.state-critical .ribbon-dot { background: var(--red); box-shadow: 0 0 8px var(--red); animation: pulse 1.4s ease-in-out infinite; }
+.ribbon.state-critical .ribbon-status-label { color: var(--red); }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.55; } }
+.ribbon-right { color: var(--muted); }
+.ribbon-right span { color: var(--text); font-weight: 500; }
+
+/* ══════════════════════════════════════════
+   MAIN
+══════════════════════════════════════════ */
+.main { flex: 1; padding: 28px 40px 36px; display: flex; flex-direction: column; gap: 20px; width: 100%; }
+
+/* Stat cards */
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.stat-card {
+  background: linear-gradient(180deg, var(--panel-2) 0%, var(--panel) 100%);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 20px 22px; position: relative; overflow: hidden;
+  transition: border-color 0.25s, transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; }
+.stat-card.network::before { background: linear-gradient(90deg, var(--blue), transparent); }
+.stat-card.network:hover { border-color: rgba(59,130,246,0.4); }
+.stat-card.process::before { background: linear-gradient(90deg, var(--purple), transparent); }
+.stat-card.process:hover { border-color: rgba(167,139,250,0.4); }
+.stat-card.log::before { background: linear-gradient(90deg, var(--amber), transparent); }
+.stat-card.log:hover { border-color: rgba(251,191,36,0.4); }
+.stat-card.integrity::before { background: linear-gradient(90deg, var(--red), transparent); }
+.stat-card.integrity:hover { border-color: rgba(245,69,92,0.4); }
+
+.stat-label { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.stat-label-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.stat-num { font-family: var(--font-display); font-size: 40px; font-weight: 700; line-height: 1; letter-spacing: -1.5px; }
+.stat-card.network .stat-num { color: var(--blue-2); }
+.stat-card.process .stat-num { color: var(--purple); }
+.stat-card.log .stat-num { color: var(--amber); }
+.stat-card.integrity .stat-num { color: var(--red); }
+.stat-footer { margin-top: 10px; font-size: 11.5px; color: var(--muted); font-family: var(--font-mono); display: flex; align-items: center; gap: 6px; }
+.stat-footer-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted-2); }
+.stat-footer.is-active { color: var(--green); }
+.stat-footer.is-active .stat-footer-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
+
+/* Toolbar */
+.toolbar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+}
+.filter-chip {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.5px;
+  padding: 6px 13px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.filter-chip:hover { color: var(--text); border-color: var(--border-2); }
+.filter-chip.active { color: var(--bg); background: var(--blue-2); border-color: var(--blue-2); font-weight: 600; }
+.filter-chip.active[data-sev="CRITICAL"] { background: var(--red); border-color: var(--red); }
+.filter-chip.active[data-sev="HIGH"] { background: var(--amber); border-color: var(--amber); }
+.filter-chip.active[data-sev="MEDIUM"] { background: var(--blue); border-color: var(--blue); }
+.filter-chip.active[data-sev="LOW"] { background: var(--green); border-color: var(--green); }
+
+.search-box {
+  flex: 1; min-width: 160px; display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(255,255,255,0.02);
+}
+.search-box svg { width: 14px; height: 14px; color: var(--muted-2); flex-shrink: 0; }
+.search-box input {
+  flex: 1; background: none; border: none; outline: none; color: var(--text);
+  font-family: var(--font-body); font-size: 12.5px;
+}
+.search-box input::placeholder { color: var(--muted-2); }
+
+.toolbar-btn {
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.4px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: 8px; border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02); color: var(--muted); cursor: pointer; transition: all 0.15s;
+}
+.toolbar-btn:hover { color: var(--text); border-color: var(--border-2); }
+.toolbar-btn svg { width: 13px; height: 13px; }
+
+/* ══════════════════════════════════════════
+   MIDDLE ROW
+══════════════════════════════════════════ */
+.mid-row { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.panel-head { padding: 16px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.panel-head-left { display: flex; align-items: center; gap: 10px; }
+.panel-title { font-family: var(--font-display); font-size: 14.5px; font-weight: 600; letter-spacing: -0.1px; }
+.panel-count { font-family: var(--font-mono); font-size: 10.5px; background: rgba(59,130,246,0.14); color: var(--blue-2); padding: 3px 9px; border-radius: 20px; }
+
+.alert-feed { max-height: 420px; overflow-y: auto; }
+.alert-feed::-webkit-scrollbar { width: 5px; }
+.alert-feed::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 3px; }
+.alert-feed::-webkit-scrollbar-track { background: transparent; }
+
+.alert-row { border-bottom: 1px solid var(--border); animation: fadeSlide 0.3s ease; cursor: pointer; }
+.alert-row:last-child { border-bottom: none; }
+.alert-row-main { display: grid; grid-template-columns: 90px 1fr auto auto; align-items: center; gap: 14px; padding: 12px 22px; transition: background 0.15s; }
+.alert-row:hover .alert-row-main { background: rgba(120,155,255,0.035); }
+@keyframes fadeSlide { from { opacity:0; transform: translateX(-6px); } to { opacity:1; transform: translateX(0); } }
+
+.sev-pill { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; padding: 4px 9px; border-radius: 4px; text-align: center; white-space: nowrap; }
+.sev-CRITICAL { background: rgba(245,69,92,0.15); color: #ff7d8f; border: 1px solid rgba(245,69,92,0.35); }
+.sev-HIGH     { background: rgba(251,191,36,0.13); color: #ffd166; border: 1px solid rgba(251,191,36,0.35); }
+.sev-MEDIUM   { background: rgba(59,130,246,0.13); color: #7cb0ff; border: 1px solid rgba(59,130,246,0.35); }
+.sev-LOW      { background: rgba(52,211,153,0.11); color: #4fe0af; border: 1px solid rgba(52,211,153,0.3); }
+
+.alert-type { font-family: var(--font-display); font-size: 13px; font-weight: 600; color: var(--text); }
+.alert-desc { font-size: 11.5px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+.alert-meta { text-align: right; }
+.alert-src { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted-2); }
+.alert-time { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+.alert-chevron { color: var(--muted-2); transition: transform 0.2s; width: 14px; height: 14px; }
+.alert-row.expanded .alert-chevron { transform: rotate(90deg); color: var(--cyan); }
+
+.alert-detail { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: rgba(0,0,0,0.15); }
+.alert-row.expanded .alert-detail { max-height: 200px; }
+.alert-detail-inner { padding: 12px 22px 16px 126px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); line-height: 1.7; }
+.alert-detail-inner b { color: var(--text); font-weight: 500; }
+
+.empty-feed { padding: 56px 24px; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.empty-feed-icon { font-size: 30px; margin-bottom: 12px; color: var(--green); }
+
+/* Severity panel */
+.chart-panel-body { padding: 22px; }
+.chart-total-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); }
+.chart-total-num { font-family: var(--font-display); font-size: 34px; font-weight: 700; color: var(--text); letter-spacing: -1px; margin-top: 2px; }
+.chart-divider { height: 1px; background: var(--border); margin: 16px 0 18px; }
+
+.sev-bar-group { margin-bottom: 15px; }
+.sev-bar-group:last-child { margin-bottom: 0; }
+.sev-bar-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.sev-bar-name { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); }
+.sev-bar-count { font-family: var(--font-display); font-size: 15px; font-weight: 700; }
+.sev-bar-track { height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+.sev-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+.bar-CRITICAL .sev-bar-fill { background: var(--red); } .bar-CRITICAL .sev-bar-count { color: var(--red); }
+.bar-HIGH .sev-bar-fill { background: var(--amber); } .bar-HIGH .sev-bar-count { color: var(--amber); }
+.bar-MEDIUM .sev-bar-fill { background: var(--blue); } .bar-MEDIUM .sev-bar-count { color: var(--blue-2); }
+.bar-LOW .sev-bar-fill { background: var(--green); } .bar-LOW .sev-bar-count { color: var(--green); }
+
+/* Activity trend */
+.trend-panel-body { padding: 20px 22px 18px; }
+.trend-label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin-bottom: 12px; }
+.trend-bars { display: flex; align-items: flex-end; gap: 3px; height: 56px; }
+.trend-bar { flex: 1; background: linear-gradient(180deg, var(--cyan), rgba(34,211,238,0.15)); border-radius: 2px 2px 0 0; min-height: 2px; transition: height 0.4s ease; }
+.trend-foot { display: flex; justify-content: space-between; margin-top: 8px; font-family: var(--font-mono); font-size: 9.5px; color: var(--muted-2); }
+
+/* ══════════════════════════════════════════
+   MODULE STATUS
+══════════════════════════════════════════ */
+.module-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
+.module-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; transition: border-color 0.3s, transform 0.2s; position: relative; overflow: hidden; }
+.module-card:hover { transform: translateY(-2px); }
+.module-card.running { border-color: rgba(52,211,153,0.28); }
+.module-card.stopped { border-color: rgba(245,69,92,0.18); }
+.module-card-line { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.module-card.running .module-card-line { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.module-card.stopped .module-card-line { background: var(--red); opacity: 0.5; }
+.module-name { font-family: var(--font-display); font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.module-status-row { display: flex; align-items: center; gap: 8px; }
+.module-status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.module-card.running .module-status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: livepulse 2s infinite; }
+.module-card.stopped .module-status-dot { background: var(--red); opacity: 0.6; }
+.module-status-text { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.module-card.running .module-status-text { color: var(--green); }
+.module-card.stopped .module-status-text { color: var(--red); opacity: 0.75; }
+.module-alert-count { margin-top: 12px; font-family: var(--font-display); font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+.module-card.network .module-alert-count { color: var(--blue-2); }
+.module-card.process .module-alert-count { color: var(--purple); }
+.module-card.log .module-alert-count { color: var(--amber); }
+.module-card.integrity .module-alert-count { color: var(--red); }
+.module-alert-label { font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 2px; }
+
+footer {
+  padding: 18px 40px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); letter-spacing: 0.5px;
+}
+.footer-right { display: flex; align-items: center; gap: 20px; }
+
+@media (max-width: 980px) {
+  .stat-row, .module-row { grid-template-columns: repeat(2,1fr); }
+  .mid-row { grid-template-columns: 1fr; }
+  header, .ribbon, .main, footer { padding-left: 20px; padding-right: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">HI<span>DS</span></div>
+      <div class="logo-sub">Security Operations Center</div>
+    </div>
+  </div>
+
+  <div class="header-center">
+    <span id="hdr-date">—</span><span class="sep">|</span><span id="hdr-time">—</span><span class="sep">|</span><span id="hdr-total">0 events</span>
+  </div>
+
+  <div class="header-right">
+    <button class="icon-btn" id="sound-toggle" title="Toggle sound on critical alerts">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    </button>
+    <div class="uptime-display">UP &nbsp;<span id="uptime-val">00:00:00</span></div>
+    <div class="live-badge" id="live-badge" title="Click to pause/resume live updates">
+      <div class="live-dot"></div><span id="live-badge-text">MONITORING</span>
+    </div>
+  </div>
+</header>
+
+<div class="ribbon state-secure" id="ribbon">
+  <div class="ribbon-left">
+    <div class="ribbon-dot" id="ribbon-dot"></div>
+    <span class="ribbon-status-label" id="ribbon-label">System Secure</span>
+    <span class="ribbon-sub" id="ribbon-sub">No active threats detected</span>
+  </div>
+  <div class="ribbon-right"><span id="ribbon-total">0</span> events logged this session</div>
+</div>
+
+<div class="main">
+
+  <div class="stat-row">
+    <div class="stat-card network">
+      <div class="stat-label"><div class="stat-label-dot" style="background:var(--blue-2)"></div>Network Monitor</div>
+      <div class="stat-num" id="cnt-network">0</div>
+      <div class="stat-footer" id="net-status"><div class="stat-footer-dot"></div>stopped</div>
+    </div>
+    <div class="stat-card process">
+      <div class="stat-label"><div class="stat-label-dot" style="background:var(--purple)"></div>Process Monitor</div>
+      <div class="stat-num" id="cnt-process">0</div>
+      <div class="stat-footer" id="proc-status"><div class="stat-footer-dot"></div>stopped</div>
+    </div>
+    <div class="stat-card log">
+      <div class="stat-label"><div class="stat-label-dot" style="background:var(--amber)"></div>Log Monitor</div>
+      <div class="stat-num" id="cnt-log">0</div>
+      <div class="stat-footer" id="log-status"><div class="stat-footer-dot"></div>stopped</div>
+    </div>
+    <div class="stat-card integrity">
+      <div class="stat-label"><div class="stat-label-dot" style="background:var(--red)"></div>File Integrity</div>
+      <div class="stat-num" id="cnt-integrity">0</div>
+      <div class="stat-footer" id="int-status"><div class="stat-footer-dot"></div>stopped</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-chip active" data-sev="ALL">All</div>
+    <div class="filter-chip" data-sev="CRITICAL">Critical</div>
+    <div class="filter-chip" data-sev="HIGH">High</div>
+    <div class="filter-chip" data-sev="MEDIUM">Medium</div>
+    <div class="filter-chip" data-sev="LOW">Low</div>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="search-input" placeholder="Search alerts by type, source, or description…">
+    </div>
+    <div class="toolbar-btn" id="export-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export CSV
+    </div>
+  </div>
+
+  <div class="mid-row">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-left">
+          <div class="panel-title">Alert Feed</div>
+          <div class="panel-count" id="feed-count">0 alerts</div>
+        </div>
+        <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:0.5px">NEWEST FIRST</div>
+      </div>
+      <div class="alert-feed" id="alert-feed">
+        <div class="empty-feed"><div class="empty-feed-icon">&#9673;</div>No threats detected — system clean</div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Severity Breakdown</div></div>
+        <div class="chart-panel-body">
+          <div class="chart-total-label">Total alerts</div>
+          <div class="chart-total-num" id="chart-total">0</div>
+          <div class="chart-divider"></div>
+          <div class="sev-bar-group bar-CRITICAL"><div class="sev-bar-label"><span class="sev-bar-name">Critical</span><span class="sev-bar-count" id="n-critical">0</span></div><div class="sev-bar-track"><div class="sev-bar-fill" id="b-critical" style="width:0%"></div></div></div>
+          <div class="sev-bar-group bar-HIGH"><div class="sev-bar-label"><span class="sev-bar-name">High</span><span class="sev-bar-count" id="n-high">0</span></div><div class="sev-bar-track"><div class="sev-bar-fill" id="b-high" style="width:0%"></div></div></div>
+          <div class="sev-bar-group bar-MEDIUM"><div class="sev-bar-label"><span class="sev-bar-name">Medium</span><span class="sev-bar-count" id="n-medium">0</span></div><div class="sev-bar-track"><div class="sev-bar-fill" id="b-medium" style="width:0%"></div></div></div>
+          <div class="sev-bar-group bar-LOW"><div class="sev-bar-label"><span class="sev-bar-name">Low</span><span class="sev-bar-count" id="n-low">0</span></div><div class="sev-bar-track"><div class="sev-bar-fill" id="b-low" style="width:0%"></div></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Live Activity</div></div>
+        <div class="trend-panel-body">
+          <div class="trend-label">Alert volume, last 20 polls</div>
+          <div class="trend-bars" id="trend-bars"></div>
+          <div class="trend-foot"><span>older</span><span>now</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="module-row">
+    <div class="module-card network stopped" id="mod-network">
+      <div class="module-card-line"></div>
+      <div class="module-name">Network Monitor</div>
+      <div class="module-status-row"><div class="module-status-dot"></div><div class="module-status-text" id="mod-network-state">Stopped</div></div>
+      <div class="module-alert-count" id="mod-network-count">0</div>
+      <div class="module-alert-label">alerts caught</div>
+    </div>
+    <div class="module-card process stopped" id="mod-process">
+      <div class="module-card-line"></div>
+      <div class="module-name">Process Monitor</div>
+      <div class="module-status-row"><div class="module-status-dot"></div><div class="module-status-text" id="mod-process-state">Stopped</div></div>
+      <div class="module-alert-count" id="mod-process-count">0</div>
+      <div class="module-alert-label">alerts caught</div>
+    </div>
+    <div class="module-card log stopped" id="mod-log">
+      <div class="module-card-line"></div>
+      <div class="module-name">Log Monitor</div>
+      <div class="module-status-row"><div class="module-status-dot"></div><div class="module-status-text" id="mod-log-state">Stopped</div></div>
+      <div class="module-alert-count" id="mod-log-count">0</div>
+      <div class="module-alert-label">alerts caught</div>
+    </div>
+    <div class="module-card integrity stopped" id="mod-integrity">
+      <div class="module-card-line"></div>
+      <div class="module-name">File Integrity</div>
+      <div class="module-status-row"><div class="module-status-dot"></div><div class="module-status-text" id="mod-integrity-state">Stopped</div></div>
+      <div class="module-alert-count" id="mod-integrity-count">0</div>
+      <div class="module-alert-label">alerts caught</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <div>HIDS v1.0 &nbsp;·&nbsp; Host Intrusion Detection System</div>
+  <div class="footer-right"><span>Refresh interval: 3s</span><span id="last-sync">syncing…</span></div>
+</footer>
+
+</div>
+
+<script>
+const API = '/api';
+let allAlerts = [];
+let activeSeverity = 'ALL';
+let searchTerm = '';
+let paused = false;
+let soundOn = false;
+let expandedIds = new Set();
+let trendHistory = [];
+let lastAlertCount = -1;
+let audioCtx = null;
+
+function tick() {
+  const now = new Date();
+  document.getElementById('hdr-date').textContent = now.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('hdr-time').textContent = now.toTimeString().slice(0,8);
+}
+tick(); setInterval(tick, 1000);
+
+function sev(s) { return ['CRITICAL','HIGH','MEDIUM','LOW'].includes(s) ? s : 'LOW'; }
+function srcName(s) { return {network:'Network',process:'Process',log:'Log',integrity:'File'}[s] || s; }
+
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'square'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+  } catch(e) {}
+}
+
+document.getElementById('sound-toggle').addEventListener('click', () => {
+  soundOn = !soundOn;
+  document.getElementById('sound-toggle').classList.toggle('active', soundOn);
+});
+
+document.getElementById('live-badge').addEventListener('click', () => {
+  paused = !paused;
+  const badge = document.getElementById('live-badge');
+  badge.classList.toggle('paused', paused);
+  document.getElementById('live-badge-text').textContent = paused ? 'PAUSED' : 'MONITORING';
+});
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeSeverity = chip.dataset.sev;
+    renderFeed();
+  });
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  searchTerm = e.target.value.toLowerCase();
+  renderFeed();
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const rows = [['Timestamp','Severity','Source','Alert Type','Description']];
+  allAlerts.forEach(a => rows.push([a.timestamp, sev(a.severity), srcName(a.source), a.alert_type, (a.description||'').replace(/,/g,';')]));
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'hids_alerts_' + new Date().toISOString().slice(0,19).replace(/[:T]/g,'-') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+function toggleExpand(id) {
+  if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+  renderFeed();
+}
+
+function updateRibbon(alerts) {
+  const ribbon = document.getElementById('ribbon');
+  const label = document.getElementById('ribbon-label');
+  const sub = document.getElementById('ribbon-sub');
+  const recent = alerts.slice(0, 10);
+  const hasCritical = recent.some(a => sev(a.severity) === 'CRITICAL');
+  const hasHigh = recent.some(a => sev(a.severity) === 'HIGH');
+
+  ribbon.classList.remove('state-secure','state-elevated','state-critical');
+  if (hasCritical) {
+    ribbon.classList.add('state-critical');
+    label.textContent = 'Critical Threat Detected'; sub.textContent = 'Immediate review recommended';
+  } else if (hasHigh) {
+    ribbon.classList.add('state-elevated');
+    label.textContent = 'Elevated Risk'; sub.textContent = 'High-severity activity observed';
+  } else {
+    ribbon.classList.add('state-secure');
+    label.textContent = 'System Secure'; sub.textContent = 'No active threats detected';
+  }
+}
+
+function renderFeed() {
+  const feed = document.getElementById('alert-feed');
+  let filtered = allAlerts;
+  if (activeSeverity !== 'ALL') filtered = filtered.filter(a => sev(a.severity) === activeSeverity);
+  if (searchTerm) {
+    filtered = filtered.filter(a =>
+      (a.alert_type||'').toLowerCase().includes(searchTerm) ||
+      (a.description||'').toLowerCase().includes(searchTerm) ||
+      srcName(a.source).toLowerCase().includes(searchTerm)
+    );
+  }
+  document.getElementById('feed-count').textContent = filtered.length + ' alert' + (filtered.length===1?'':'s');
+
+  if (filtered.length === 0) {
+    feed.innerHTML = '<div class="empty-feed"><div class="empty-feed-icon">&#9673;</div>' +
+      (allAlerts.length === 0 ? 'No threats detected — system clean' : 'No alerts match this filter') + '</div>';
+    return;
+  }
+
+  feed.innerHTML = filtered.map(a => {
+    const s = sev(a.severity);
+    const expanded = expandedIds.has(a.id);
+    const extra = a.extra && Object.keys(a.extra).length ? Object.entries(a.extra).map(([k,v]) => {
+      let val = Array.isArray(v) ? v.join(' ') : v;
+      return `<div><b>${k}:</b> ${val || '—'}</div>`;
+    }).join('') : '<div>No additional details for this alert.</div>';
+    return `<div class="alert-row ${expanded?'expanded':''}" onclick="toggleExpand(${a.id})">
+      <div class="alert-row-main">
+        <div class="sev-pill sev-${s}">${s}</div>
+        <div class="alert-info">
+          <div class="alert-type">${a.alert_type}</div>
+          <div class="alert-desc">${a.description}</div>
+        </div>
+        <div class="alert-meta">
+          <div class="alert-src">${srcName(a.source)}</div>
+          <div class="alert-time">${a.timestamp}</div>
+        </div>
+        <svg class="alert-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="alert-detail"><div class="alert-detail-inner">${extra}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderTrend() {
+  const container = document.getElementById('trend-bars');
+  const max = Math.max(...trendHistory, 1);
+  container.innerHTML = trendHistory.map(v => `<div class="trend-bar" style="height:${Math.max(4, Math.round(v/max*56))}px" title="${v} events"></div>`).join('');
+}
+
+async function fetchAlerts() {
+  try {
+    const r = await fetch(API + '/alerts');
+    const alerts = await r.json();
+    const isNew = alerts.length !== lastAlertCount;
+    if (isNew && lastAlertCount !== -1 && alerts.length > lastAlertCount) {
+      const newest = alerts[0];
+      if (soundOn && newest && sev(newest.severity) === 'CRITICAL') playBeep();
+    }
+    lastAlertCount = alerts.length;
+    allAlerts = alerts;
+
+    document.getElementById('hdr-total').textContent = alerts.length + ' events';
+    document.getElementById('ribbon-total').textContent = alerts.length;
+    document.getElementById('chart-total').textContent = alerts.length;
+    updateRibbon(alerts);
+    if (!paused) renderFeed();
+
+    const counts = {CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0};
+    alerts.forEach(a => { const s = sev(a.severity); counts[s]++; });
+    const maxC = Math.max(...Object.values(counts), 1);
+    ['CRITICAL','HIGH','MEDIUM','LOW'].forEach(s => {
+      const k = s.toLowerCase();
+      document.getElementById('n-'+k).textContent = counts[s];
+      document.getElementById('b-'+k).style.width = Math.round(counts[s]/maxC*100)+'%';
+    });
+
+    trendHistory.push(alerts.length);
+    if (trendHistory.length > 20) trendHistory.shift();
+    renderTrend();
+  } catch(e) {
+    document.getElementById('alert-feed').innerHTML =
+      '<div class="empty-feed"><div class="empty-feed-icon">&#9888;</div>Cannot reach server.<br>Run run_dashboard.py first.</div>';
+  }
+}
+
+async function fetchStatus() {
+  try {
+    const r = await fetch(API + '/status');
+    const d = await r.json();
+    document.getElementById('uptime-val').textContent = d.uptime;
+    document.getElementById('last-sync').textContent = 'Last sync ' + d.timestamp;
+
+    const mods = d.modules;
+    ['network','process','log','integrity'].forEach(m => {
+      const info = mods[m] || {status:'stopped',alerts:0};
+      const run = info.status === 'running';
+      const card = document.getElementById('mod-'+m);
+      card.className = 'module-card ' + m + ' ' + (run ? 'running' : 'stopped');
+      document.getElementById('mod-'+m+'-state').textContent = run ? 'Running' : 'Stopped';
+      document.getElementById('mod-'+m+'-count').textContent = info.alerts;
+      document.getElementById('cnt-'+m).textContent = info.alerts;
+      const sf = document.getElementById(m==='network'?'net-status':m==='process'?'proc-status':m==='log'?'log-status':'int-status');
+      if (sf) { sf.lastChild.textContent = run ? 'active' : 'stopped'; sf.classList.toggle('is-active', run); }
+    });
+  } catch(e) {}
+}
+
+async function refresh() { if (paused) return; await fetchAlerts(); await fetchStatus(); }
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>
