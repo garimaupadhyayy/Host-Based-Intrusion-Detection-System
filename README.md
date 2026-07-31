@@ -1,4 +1,4 @@
-# Real-Time Host-Based Intrusion Detection System (HIDS)
+# Host-Based Intrusion Detection System (HIDS)
 <img width="1610" height="851" alt="Screenshot 2026-07-31 204737" src="https://github.com/user-attachments/assets/15efb39d-9e93-4764-b6d5-e1acd0394483" />
 
 A Python-based **Real-Time Host-Based Intrusion Detection System (HIDS)** designed to monitor host activities, detect suspicious behavior, and visualize security events through an interactive Security Operations Center (SOC) dashboard.
